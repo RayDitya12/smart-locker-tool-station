@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Brand } from './Brand'
 import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Field'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { cn } from '@/lib/cn'
 import { ADMIN_PIN, useStore } from '@/lib/store'
 
@@ -81,14 +82,14 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-canvas lg:flex">
-      <aside className="border-b border-line bg-ink-950 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:border-b-0">
+      <aside className="no-print border-b border-line bg-panel lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r">
         <div className="flex items-center justify-between gap-3 px-4 py-4 lg:block">
           <Link to="/admin">
-            <Brand light />
+            <Brand />
           </Link>
           <Link
             to="/"
-            className="text-[12px] font-semibold text-white/50 transition hover:text-white lg:mt-6 lg:inline-flex lg:items-center lg:gap-1"
+            className="text-[12px] font-semibold text-ink-500 transition hover:text-ink-900 lg:mt-6 lg:inline-flex lg:items-center lg:gap-1"
           >
             ← Situs pengguna
           </Link>
@@ -103,15 +104,15 @@ export function AdminLayout() {
                 cn(
                   'flex shrink-0 items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold transition lg:shrink',
                   isActive
-                    ? 'bg-white/12 text-white'
-                    : 'text-white/55 hover:bg-white/6 hover:text-white/90',
+                    ? 'bg-ink-900/10 text-ink-950'
+                    : 'text-ink-500 hover:bg-ink-900/5 hover:text-ink-900',
                 )
               }
             >
               <span className="text-base leading-none">{item.icon}</span>
               <span className="whitespace-nowrap">{item.label}</span>
               {item.to === '/admin/verifikasi' && pendingReturns > 0 && (
-                <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-accent-400 px-1 text-[10px] font-bold text-ink-950">
+                <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-accent-400 px-1 text-[10px] font-bold text-night">
                   {pendingReturns}
                 </span>
               )}
@@ -119,12 +120,16 @@ export function AdminLayout() {
           ))}
         </nav>
         <div className="flex gap-2 px-3 pb-3 lg:mt-4 lg:flex-col lg:pb-4">
+          <div className="flex items-center justify-between gap-2 lg:w-full">
+            <span className="text-[12px] font-semibold text-ink-400">Tampilan</span>
+            <ThemeToggle />
+          </div>
           <button
             onClick={() => {
               adminLogout()
               navigate('/admin')
             }}
-            className="flex-1 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-white/55 transition hover:bg-white/6 hover:text-white lg:flex-none"
+            className="flex-1 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-ink-500 transition hover:bg-ink-900/5 hover:text-ink-900 lg:flex-none"
           >
             Keluar dari admin
           </button>
@@ -136,13 +141,13 @@ export function AdminLayout() {
                   setConfirmReset(false)
                   navigate('/admin')
                 }}
-                className="flex-1 rounded-xl bg-bad-500 px-3 py-2.5 text-[13px] font-bold text-white transition hover:bg-bad-600"
+                className="flex-1 rounded-xl bg-bad-solid px-3 py-2.5 text-[13px] font-bold text-white transition hover:bg-bad-500"
               >
                 Ya, reset semua
               </button>
               <button
                 onClick={() => setConfirmReset(false)}
-                className="flex-1 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-white/55 transition hover:bg-white/6 hover:text-white"
+                className="flex-1 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-ink-500 transition hover:bg-ink-900/5 hover:text-ink-900"
               >
                 Batal
               </button>
@@ -150,7 +155,7 @@ export function AdminLayout() {
           ) : (
             <button
               onClick={() => setConfirmReset(true)}
-              className="flex-1 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-white/40 transition hover:bg-white/6 hover:text-white/80 lg:flex-none"
+              className="flex-1 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-ink-400 transition hover:bg-ink-900/5 hover:text-ink-800 lg:flex-none"
             >
               Reset data demo
             </button>

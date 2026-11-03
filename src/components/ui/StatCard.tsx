@@ -5,7 +5,7 @@ interface StatCardProps {
   icon: ReactNode
   value: ReactNode
   label: string
-  tone?: 'default' | 'accent' | 'ok' | 'info'
+  tone?: 'default' | 'accent' | 'ok' | 'info' | 'bad'
   className?: string
 }
 
@@ -14,6 +14,7 @@ const toneSkin = {
   accent: 'bg-accent-50 text-accent-600',
   ok: 'bg-ok-50 text-ok-600',
   info: 'bg-signal-50 text-signal-600',
+  bad: 'bg-bad-50 text-bad-600',
 }
 
 export function StatCard({

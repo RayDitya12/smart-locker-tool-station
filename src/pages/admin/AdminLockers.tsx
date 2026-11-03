@@ -37,7 +37,7 @@ export function AdminLockers() {
                 <Badge tone="info">{utilization}% terisi</Badge>
               </div>
 
-              <div className="mt-4 rounded-2xl bg-ink-950 p-4">
+              <div className="mt-4 rounded-2xl border border-line bg-panel p-4">
                 <LockerGrid compartments={comps} columns={3} />
               </div>
 

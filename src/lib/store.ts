@@ -2,11 +2,13 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import {
   addDaysISO,
+  daysLate,
+  formatRupiah,
   generateAccessCode,
   generateLoanId,
-  isOverdue,
+  lateFeeFor,
 } from './format'
-import { buildSeedCompartments, buildSeedTools, seedStations } from './seed'
+import { buildSeedState } from './seed'
 import type {
   Compartment,
   Loan,
@@ -77,12 +79,7 @@ interface StoreState {
 let toastSeq = 0
 
 function freshSeed() {
-  return {
-    stations: JSON.parse(JSON.stringify(seedStations)) as Station[],
-    compartments: buildSeedCompartments(),
-    tools: buildSeedTools(),
-    loans: [] as Loan[],
-  }
+  return buildSeedState()
 }
 
 export const useStore = create<StoreState>()(
@@ -129,6 +126,7 @@ export const useStore = create<StoreState>()(
           durationDays: draft.durationDays,
           rentalFee,
           deposit: tool.deposit,
+          lateFee: 0,
           status: 'Menunggu pembayaran',
           payment: null,
           returnInfo: null,
@@ -203,13 +201,18 @@ export const useStore = create<StoreState>()(
       submitReturn: (loanId, sensor, condition, notes) => {
         const loan = get().loans.find((l) => l.id === loanId)
         if (!loan) return
-        const overdue = isOverdue(loan.dueDate)
-        const cleanReturn = condition === 'Baik' && !overdue
+        const late = daysLate(loan.dueDate)
+        const lateFee = lateFeeFor(loan, late)
+        const cleanReturn = condition === 'Baik'
+        const depositReturned = cleanReturn
+          ? Math.max(0, loan.deposit - lateFee)
+          : 0
         set((s) => ({
           loans: s.loans.map((l) =>
             l.id === loanId
               ? {
                   ...l,
+                  lateFee,
                   status: cleanReturn ? 'Selesai' : 'Menunggu verifikasi',
                   returnInfo: {
                     returnedAt: new Date().toISOString(),
@@ -217,6 +220,7 @@ export const useStore = create<StoreState>()(
                     sensorVerified: true,
                     condition,
                     depositRefunded: cleanReturn,
+                    depositReturned,
                     notes,
                   },
                   payment: cleanReturn && l.payment
@@ -246,7 +250,9 @@ export const useStore = create<StoreState>()(
         }))
         get().pushToast(
           cleanReturn
-            ? 'Alat terverifikasi sensor. Deposit dikembalikan.'
+            ? late > 0
+              ? `Terlambat ${late} hari · denda ${formatRupiah(lateFee)} dipotong dari deposit.`
+              : 'Alat terverifikasi sensor. Deposit dikembalikan penuh.'
             : 'Pengembalian diteruskan ke admin untuk verifikasi.',
           cleanReturn ? 'success' : 'info',
         )
@@ -267,6 +273,9 @@ export const useStore = create<StoreState>()(
                     sensorVerified: true,
                     condition,
                     depositRefunded: refundDeposit,
+                    depositReturned: refundDeposit
+                      ? Math.max(0, l.deposit - l.lateFee)
+                      : 0,
                     notes: notes || l.returnInfo?.notes || '',
                   },
                   payment:
@@ -367,7 +376,7 @@ export const useStore = create<StoreState>()(
       },
     }),
     {
-      name: 'slt-store-v1',
+      name: 'slt-store-v2',
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
         stations: s.stations,

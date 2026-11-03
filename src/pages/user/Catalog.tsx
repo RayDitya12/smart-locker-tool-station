@@ -149,7 +149,7 @@ function FilterPill({
       className={cn(
         'rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition',
         active
-          ? 'border-ink-900 bg-ink-900 text-white'
+          ? 'border-fg bg-fg text-on-fg'
           : 'border-line-strong bg-surface text-ink-600 hover:border-ink-300 hover:text-ink-900',
       )}
     >

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ToolArt } from '@/components/ToolArt'
 import { Badge } from '@/components/ui/Badge'
 import { formatRupiah } from '@/lib/format'
 import { toolStatusTone } from '@/lib/status'
@@ -13,9 +14,9 @@ export function ToolCard({ tool, station }: ToolCardProps) {
   const available = tool.status === 'Tersedia'
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-lift">
-      <div className="relative flex h-28 items-center justify-center bg-gradient-to-br from-surface-2 to-signal-50">
-        <span className="text-5xl transition-transform duration-300 group-hover:scale-110">
-          {tool.icon}
+      <div className="relative flex h-32 items-center justify-center bg-gradient-to-br from-surface-2 to-signal-50">
+        <span className="grid h-16 w-16 place-items-center drop-shadow-sm transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-105">
+          <ToolArt id={tool.id} name={tool.name} />
         </span>
         <span className="absolute left-3 top-3 rounded-full bg-surface/85 px-2 py-0.5 font-mono text-[10px] font-bold text-ink-700 backdrop-blur">
           {tool.id}
@@ -65,7 +66,7 @@ export function ToolCard({ tool, station }: ToolCardProps) {
           aria-disabled={!available}
           className={
             available
-              ? 'mt-3.5 inline-flex h-10 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-semibold text-white transition hover:bg-ink-800'
+              ? 'mt-3.5 inline-flex h-10 items-center justify-center rounded-xl bg-fg text-[13px] font-semibold text-on-fg transition hover:opacity-90'
               : 'mt-3.5 inline-flex h-10 cursor-not-allowed items-center justify-center rounded-xl bg-canvas text-[13px] font-semibold text-ink-400'
           }
         >

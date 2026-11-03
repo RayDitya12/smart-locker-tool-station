@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { LockerGrid } from '@/components/locker/LockerGrid'
+import { ToolArt } from '@/components/ToolArt'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Field, Input } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Modal'
+import { Receipt } from '@/components/ui/Receipt'
 import { Stepper } from '@/components/ui/Stepper'
 import { cn } from '@/lib/cn'
 import { addDaysISO, formatDate, formatRupiah, todayISO } from '@/lib/format'
@@ -139,8 +141,8 @@ export function Borrow() {
                           : 'border-line hover:border-line-strong hover:bg-surface-2',
                       )}
                     >
-                      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-surface text-2xl shadow-soft">
-                        {t.icon}
+                      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-surface p-1.5 shadow-soft">
+                        <ToolArt id={t.id} name={t.name} />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
@@ -159,8 +161,8 @@ export function Borrow() {
                       </span>
                       <span
                         className={cn(
-                          'grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 text-[10px] text-white',
-                          active ? 'border-ink-900 bg-ink-900' : 'border-line-strong',
+                          'grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 text-[10px]',
+                          active ? 'border-fg bg-fg text-on-fg' : 'border-line-strong text-transparent',
                         )}
                       >
                         {active ? '✓' : ''}
@@ -300,7 +302,7 @@ export function Borrow() {
                       className={cn(
                         'rounded-xl border-2 px-4 py-2.5 text-[13px] font-bold transition',
                         duration === d
-                          ? 'border-ink-900 bg-ink-900 text-white'
+                          ? 'border-fg bg-fg text-on-fg'
                           : 'border-line bg-surface text-ink-700 hover:border-line-strong',
                       )}
                     >
@@ -358,8 +360,8 @@ export function Borrow() {
                       </span>
                       <span
                         className={cn(
-                          'grid h-5 w-5 place-items-center rounded-full border-2 text-[10px] text-white',
-                          active ? 'border-ink-900 bg-ink-900' : 'border-line-strong',
+                          'grid h-5 w-5 place-items-center rounded-full border-2 text-[10px]',
+                          active ? 'border-fg bg-fg text-on-fg' : 'border-line-strong text-transparent',
                         )}
                       >
                         {active ? '✓' : ''}
@@ -392,7 +394,7 @@ export function Borrow() {
           {/* STEP 4 - sukses */}
           {step === 4 && loan && (
             <Card className="anim-fade-up overflow-hidden !p-0">
-              <div className="bg-ok-600 px-6 py-5 text-white">
+              <div className="bg-ok-solid px-6 py-5 text-white">
                 <div className="flex items-center gap-3">
                   <span className="grid h-11 w-11 place-items-center rounded-full bg-white/20 text-xl">
                     ✓
@@ -451,7 +453,7 @@ export function Borrow() {
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-ink-400">
                     {opening ? 'Membuka kompartemen…' : 'Kompartemen kamu'}
                   </p>
-                  <div className="rounded-2xl bg-ink-950 p-4">
+                  <div className="rounded-2xl border border-line bg-panel p-4">
                     <LockerGrid
                       compartments={compartments.filter(
                         (c) => c.stationId === loan.stationId,
@@ -467,6 +469,19 @@ export function Borrow() {
                   </p>
                 </div>
               </div>
+
+              <div className="no-print border-t border-dashed border-line-strong bg-canvas px-6 py-7">
+                <p className="mb-4 text-center text-[11px] font-bold uppercase tracking-wider text-ink-400">
+                  Struk transaksi
+                </p>
+                <Receipt
+                  mode="payment"
+                  loan={loan}
+                  tool={tool}
+                  station={station}
+                  compartment={compartments.find((c) => c.id === loan.compartmentId)}
+                />
+              </div>
             </Card>
           )}
         </div>
@@ -479,8 +494,8 @@ export function Borrow() {
             </h3>
             {tool ? (
               <div className="mt-3 flex items-center gap-3">
-                <span className="grid h-14 w-14 place-items-center rounded-xl bg-surface text-3xl shadow-soft">
-                  {tool.icon}
+                <span className="grid h-14 w-14 place-items-center rounded-xl bg-surface p-1.5 shadow-soft">
+                  <ToolArt id={tool.id} name={tool.name} />
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-[15px] font-bold text-ink-950">

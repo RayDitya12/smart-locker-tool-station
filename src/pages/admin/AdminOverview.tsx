@@ -16,15 +16,25 @@ export function AdminOverview() {
   const available = tools.filter((t) => t.status === 'Tersedia').length
   const borrowed = tools.filter((t) => t.status === 'Dipinjam').length
   const active = loans.filter(
-    (l) => l.status === 'Aktif' || l.status === 'Menunggu verifikasi',
+    (l) =>
+      l.status === 'Aktif' ||
+      l.status === 'Terlambat' ||
+      l.status === 'Menunggu verifikasi',
   )
   const pending = loans.filter((l) => l.status === 'Menunggu verifikasi')
   const paid = loans.filter((l) => l.payment)
   const revenue = paid.reduce((sum, l) => sum + l.rentalFee, 0)
+  const denda = loans.reduce(
+    (sum, l) => sum + (l.returnInfo ? l.lateFee : 0),
+    0,
+  )
   const depositHeld = paid
     .filter((l) => !l.returnInfo?.depositRefunded)
     .reduce((sum, l) => sum + l.deposit, 0)
-  const overdue = active.filter((l) => isOverdue(l.dueDate))
+  const overdue = loans.filter(
+    (l) =>
+      l.status === 'Terlambat' || (l.status === 'Aktif' && isOverdue(l.dueDate)),
+  )
   const needsCheck = tools.filter(
     (t) => t.condition === 'Rusak' || t.condition === 'Perlu diperiksa',
   )
@@ -63,6 +73,18 @@ export function AdminOverview() {
           value={formatRupiah(depositHeld)}
           label="Deposit ditahan"
           tone="info"
+        />
+        <StatCard
+          icon="⏰"
+          value={overdue.length}
+          label="Peminjaman terlambat"
+          tone={overdue.length > 0 ? 'bad' : 'default'}
+        />
+        <StatCard
+          icon="⚖️"
+          value={formatRupiah(denda)}
+          label="Denda terkumpul"
+          tone="accent"
         />
       </div>
 
@@ -113,6 +135,9 @@ export function AdminOverview() {
               <tbody>
                 {recent.map((l) => {
                   const t = tools.find((x) => x.id === l.toolId)
+                  const late =
+                    l.status === 'Terlambat' ||
+                    (l.status === 'Aktif' && isOverdue(l.dueDate))
                   return (
                     <tr key={l.id} className="border-b border-line/70 last:border-0">
                       <td className="py-2.5">
@@ -126,7 +151,7 @@ export function AdminOverview() {
                       </td>
                       <td
                         className={
-                          isOverdue(l.dueDate) && l.status === 'Aktif'
+                          late
                             ? 'py-2.5 font-semibold text-bad-600'
                             : 'py-2.5 text-ink-700'
                         }
@@ -138,9 +163,7 @@ export function AdminOverview() {
                       </td>
                       <td className="py-2.5">
                         <Badge tone={loanStatusTone(l.status)} dot>
-                          {isOverdue(l.dueDate) && l.status === 'Aktif'
-                            ? 'Terlambat'
-                            : l.status}
+                          {late ? 'Terlambat' : l.status}
                         </Badge>
                       </td>
                     </tr>

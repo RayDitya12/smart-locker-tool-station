@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Brand } from './Brand'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { cn } from '@/lib/cn'
 import { useStore } from '@/lib/store'
 
@@ -20,7 +21,7 @@ export function UserLayout() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b border-line bg-surface/85 backdrop-blur-md">
+      <header className="glass no-print sticky top-0 z-40 border-b border-line">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link to="/" onClick={() => setOpen(false)}>
             <Brand />
@@ -59,6 +60,7 @@ export function UserLayout() {
           </nav>
 
           <div className="hidden items-center gap-2 md:flex">
+            <ThemeToggle />
             <Link
               to="/admin"
               className="rounded-lg px-3 py-2 text-[13px] font-semibold text-ink-500 transition hover:bg-canvas hover:text-ink-800"
@@ -67,7 +69,7 @@ export function UserLayout() {
             </Link>
             <button
               onClick={() => navigate(session ? '/pinjam' : '/katalog')}
-              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-ink-900 px-4 text-[13px] font-semibold text-white shadow-soft transition hover:-translate-y-px hover:bg-ink-800"
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-fg px-4 text-[13px] font-semibold text-on-fg shadow-soft transition hover:-translate-y-px hover:opacity-90"
             >
               <span className="text-base leading-none">＋</span> Pinjam alat
             </button>
@@ -86,6 +88,10 @@ export function UserLayout() {
 
         {open && (
           <div className="border-t border-line bg-surface px-4 py-3 md:hidden">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[12px] font-semibold text-ink-500">Tampilan</span>
+              <ThemeToggle />
+            </div>
             <nav className="flex flex-col gap-1">
               {[...navItems, { to: '/admin', label: 'Admin' }].map((item) => (
                 <NavLink
@@ -108,7 +114,7 @@ export function UserLayout() {
                   setOpen(false)
                   navigate('/pinjam')
                 }}
-                className="mt-1 inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-ink-900 px-4 text-sm font-semibold text-white"
+                className="mt-1 inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-fg px-4 text-sm font-semibold text-on-fg"
               >
                 ＋ Pinjam alat
               </button>

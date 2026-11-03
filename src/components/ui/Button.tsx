@@ -6,7 +6,7 @@ type Size = 'sm' | 'md' | 'lg'
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-ink-900 text-white hover:bg-ink-800 active:bg-ink-950 shadow-soft disabled:bg-ink-300',
+    'bg-fg text-on-fg hover:opacity-90 active:opacity-100 shadow-soft disabled:opacity-40',
   accent:
     'bg-accent-400 text-ink-950 hover:bg-accent-300 active:bg-accent-500 shadow-soft disabled:bg-accent-100 disabled:text-ink-400',
   signal:

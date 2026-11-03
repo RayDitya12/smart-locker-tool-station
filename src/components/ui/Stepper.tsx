@@ -18,7 +18,7 @@ export function Stepper({ steps, current }: StepperProps) {
                 className={cn(
                   'grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold transition-all',
                   done && 'bg-ok-500 text-white',
-                  active && 'bg-ink-900 text-white anim-ring',
+                  active && 'bg-fg text-on-fg anim-ring',
                   !done && !active && 'bg-line text-ink-400',
                 )}
               >

@@ -2,9 +2,15 @@ import { useStore } from '@/lib/store'
 import { cn } from '@/lib/cn'
 
 const toneStyles = {
-  info: 'border-line-strong bg-ink-900 text-white',
-  success: 'border-ok-500/30 bg-ok-600 text-white',
-  error: 'border-bad-500/30 bg-bad-600 text-white',
+  info: 'border-line bg-panel text-ink-950',
+  success: 'border-ok-500/30 bg-ok-solid text-white',
+  error: 'border-bad-500/30 bg-bad-solid text-white',
+}
+
+const toneChip = {
+  info: 'bg-ink-900/12 text-ink-700',
+  success: 'bg-white/20 text-white',
+  error: 'bg-white/20 text-white',
 }
 
 const toneIcon = {
@@ -28,7 +34,12 @@ export function Toaster() {
             toneStyles[t.tone],
           )}
         >
-          <span className="mt-px grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/20 text-[11px] font-bold">
+          <span
+            className={cn(
+              'mt-px grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-bold',
+              toneChip[t.tone],
+            )}
+          >
             {toneIcon[t.tone]}
           </span>
           <span className="flex-1">{t.message}</span>

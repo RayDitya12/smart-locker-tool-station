@@ -126,7 +126,7 @@ export function AdminAnalytics() {
                     </span>
                   )}
                   {v > 0 && (
-                    <span className="pointer-events-none absolute -top-6 left-1/2 hidden -translate-x-1/2 rounded bg-ink-900 px-1.5 py-0.5 text-[10px] font-bold text-white group-hover:block">
+                    <span className="pointer-events-none absolute -top-6 left-1/2 hidden -translate-x-1/2 rounded bg-fg px-1.5 py-0.5 text-[10px] font-bold text-on-fg group-hover:block">
                       {v}
                     </span>
                   )}
@@ -148,7 +148,7 @@ export function AdminAnalytics() {
                   className="flex items-center justify-between rounded-xl bg-surface-2 px-4 py-2.5 text-[13px]"
                 >
                   <span className="font-semibold text-ink-800">{cat}</span>
-                  <span className="rounded-full bg-ink-900 px-2.5 py-0.5 text-[11px] font-bold text-white">
+                  <span className="rounded-full bg-fg px-2.5 py-0.5 text-[11px] font-bold text-on-fg">
                     {count} transaksi
                   </span>
                 </div>

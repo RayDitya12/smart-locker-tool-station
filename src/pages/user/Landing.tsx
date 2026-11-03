@@ -63,28 +63,29 @@ export function Landing() {
   return (
     <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
       {/* Hero */}
-      <section className="relative mt-6 overflow-hidden rounded-3xl bg-ink-950 px-6 py-12 text-white sm:mt-8 sm:px-10 sm:py-16">
+      <section className="relative mt-6 overflow-hidden rounded-3xl border border-line bg-panel px-6 py-12 text-ink-900 shadow-lift sm:mt-8 sm:px-10 sm:py-16">
+        <div className="hero-grid pointer-events-none absolute inset-0 opacity-70" aria-hidden />
         <div
-          className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-accent-400/20 blur-3xl"
+          className="pointer-events-none absolute -right-16 -top-28 h-80 w-80 rounded-full bg-accent-500/20 blur-[90px]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute -bottom-28 left-1/3 h-72 w-72 rounded-full bg-signal-500/20 blur-3xl"
+          className="pointer-events-none absolute -bottom-32 left-1/4 h-80 w-80 rounded-full bg-signal-500/18 blur-[90px]"
           aria-hidden
         />
         <div className="relative grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="anim-fade-up">
-            <Badge tone="warn" className="bg-white/10 text-accent-300 ring-white/15">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent-400" />
+            <Badge tone="warn" className="bg-accent-500/12 text-accent-600 ring-accent-500/25">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent-500" />
               Layanan 24 jam · mandiri · tercatat digital
             </Badge>
-            <h1 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-[3.4rem]">
+            <h1 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-tight text-ink-950 sm:text-5xl lg:text-[3.4rem]">
               Perkakas ada saat
               <br />
               kamu butuh.
-              <span className="text-accent-400"> Tanpa beli.</span>
+              <span className="text-gradient"> Tanpa beli.</span>
             </h1>
-            <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-white/65">
+            <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-ink-600">
               Smart Locker Tool Station adalah loker pintar tempat mahasiswa rantau
               meminjam perkakas rumah tangga sesekali pakai — bor, obeng, tangga,
               setrika — cukup dengan scan, bayar, dan buka loker sendiri.
@@ -98,43 +99,43 @@ export function Landing() {
               <Link to="/pinjam">
                 <Button
                   size="lg"
-                  className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+                  className="border border-line-strong bg-surface-2 text-ink-900 hover:bg-canvas"
                 >
                   Mulai pinjam
                 </Button>
               </Link>
             </div>
-            <dl className="mt-9 grid max-w-md grid-cols-3 gap-4 border-t border-white/10 pt-6">
+            <dl className="mt-9 grid max-w-md grid-cols-3 gap-4 border-t border-ink-900/10 pt-6">
               {[
                 { k: `${tools.length}`, v: 'Perkakas siap pinjam' },
                 { k: `${stations.length}`, v: 'Titik stasiun loker' },
                 { k: '24/7', v: 'Akses mandiri' },
               ].map((s) => (
                 <div key={s.v}>
-                  <dt className="text-2xl font-extrabold text-accent-400">{s.k}</dt>
-                  <dd className="mt-0.5 text-[11px] leading-snug text-white/55">{s.v}</dd>
+                  <dt className="text-2xl font-extrabold text-accent-600">{s.k}</dt>
+                  <dd className="mt-0.5 text-[11px] leading-snug text-ink-500">{s.v}</dd>
                 </div>
               ))}
             </dl>
           </div>
 
           <div className="anim-fade-up relative">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
+            <div className="rounded-2xl border border-line bg-surface/70 p-5 backdrop-blur">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-white/45">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-ink-400">
                     Stasiun loker
                   </p>
-                  <p className="text-sm font-bold text-white">{heroStation?.name}</p>
+                  <p className="text-sm font-bold text-ink-950">{heroStation?.name}</p>
                 </div>
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent-400 text-ink-950">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent-400 text-night">
                   ▦
                 </span>
               </div>
-              <div className="rounded-xl bg-ink-900/60 p-3">
+              <div className="rounded-xl border border-line bg-panel-2 p-3">
                 <LockerGrid compartments={heroCompartments} columns={3} />
               </div>
-              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-white/55">
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-ink-500">
                 <span className="flex items-center gap-1.5">
                   <i className="h-2 w-2 rounded-full bg-ok-500" /> Terisi alat
                 </span>

@@ -61,6 +61,22 @@ export function isOverdue(dueISO: string): boolean {
   return todayISO() > dueISO.slice(0, 10)
 }
 
+export function daysLate(dueISO: string, atISO?: string): number {
+  if (!dueISO) return 0
+  const d = daysBetween(dueISO, atISO ?? todayISO())
+  return d > 0 ? d : 0
+}
+
+export function lateFeeFor(
+  loan: { deposit: number; rentalFee: number; durationDays: number },
+  lateDays: number,
+): number {
+  if (lateDays <= 0) return 0
+  const perDay =
+    loan.durationDays > 0 ? Math.round(loan.rentalFee / loan.durationDays) : 0
+  return Math.min(loan.deposit, lateDays * perDay)
+}
+
 export function generateAccessCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000))
 }

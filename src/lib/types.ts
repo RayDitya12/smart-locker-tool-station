@@ -63,6 +63,7 @@ export interface ReturnInfo {
   sensorVerified: boolean
   condition: ToolCondition | ''
   depositRefunded: boolean
+  depositReturned: number
   notes: string
 }
 
@@ -90,6 +91,7 @@ export interface Loan {
   durationDays: number
   rentalFee: number
   deposit: number
+  lateFee: number
   status: LoanStatus
   payment: Payment | null
   returnInfo: ReturnInfo | null

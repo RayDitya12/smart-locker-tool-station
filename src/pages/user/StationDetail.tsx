@@ -67,7 +67,7 @@ export function StationDetail() {
             title="Denah loker"
             subtitle={`${occupied} dari ${stationComps.length} kompartemen terisi`}
           />
-          <div className="rounded-2xl bg-ink-950 p-4">
+          <div className="rounded-2xl border border-line bg-panel p-4">
             <LockerGrid compartments={stationComps} columns={3} />
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">

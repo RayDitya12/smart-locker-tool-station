@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ToolArt } from '@/components/ToolArt'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -19,7 +20,10 @@ export function Rentals() {
     ? loans.filter((l) => l.studentId === session.studentId)
     : []
   const active = mine.filter(
-    (l) => l.status === 'Aktif' || l.status === 'Menunggu verifikasi',
+    (l) =>
+      l.status === 'Aktif' ||
+      l.status === 'Terlambat' ||
+      l.status === 'Menunggu verifikasi',
   )
   const history = mine.filter(
     (l) => l.status === 'Selesai' || l.status === 'Dibatalkan',
@@ -75,7 +79,7 @@ export function Rentals() {
                 key={l.id}
                 loan={l}
                 toolName={tools.find((t) => t.id === l.toolId)?.name ?? l.toolId}
-                toolIcon={tools.find((t) => t.id === l.toolId)?.icon ?? '🧰'}
+                toolId={l.toolId}
                 stationName={stations.find((s) => s.id === l.stationId)?.name ?? ''}
                 compLabel={
                   compartments.find((c) => c.id === l.compartmentId)?.label ?? ''
@@ -97,7 +101,7 @@ export function Rentals() {
                 key={l.id}
                 loan={l}
                 toolName={tools.find((t) => t.id === l.toolId)?.name ?? l.toolId}
-                toolIcon={tools.find((t) => t.id === l.toolId)?.icon ?? '🧰'}
+                toolId={l.toolId}
                 stationName={stations.find((s) => s.id === l.stationId)?.name ?? ''}
                 compLabel={
                   compartments.find((c) => c.id === l.compartmentId)?.label ?? ''
@@ -114,27 +118,28 @@ export function Rentals() {
 function LoanCard({
   loan,
   toolName,
-  toolIcon,
+  toolId,
   stationName,
   compLabel,
 }: {
   loan: Loan
   toolName: string
-  toolIcon: string
+  toolId: string
   stationName: string
   compLabel: string
 }) {
   const overdue =
-    (loan.status === 'Aktif' || loan.status === 'Menunggu verifikasi') &&
-    isOverdue(loan.dueDate)
-  const canReturn = loan.status === 'Aktif'
+    loan.status === 'Terlambat' ||
+    ((loan.status === 'Aktif' || loan.status === 'Menunggu verifikasi') &&
+      isOverdue(loan.dueDate))
+  const canReturn = loan.status === 'Aktif' || loan.status === 'Terlambat'
 
   return (
     <Card className={cn('anim-fade-up', overdue && 'border-bad-500/40')}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3.5">
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-canvas text-3xl">
-            {toolIcon}
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-canvas p-1.5">
+            <ToolArt id={toolId} name={toolName} />
           </span>
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -184,13 +189,13 @@ function LoanCard({
           label="Deposit"
           value={formatRupiah(loan.deposit)}
           sub={
-            loan.returnInfo?.depositRefunded
-              ? 'Dikembalikan'
-              : loan.status === 'Selesai'
-                ? 'Ditahan'
-                : 'Ditahan sementara'
+            loan.returnInfo
+              ? loan.returnInfo.depositReturned > 0
+                ? `Kembali ${formatRupiah(loan.returnInfo.depositReturned)}`
+                : 'Ditahan'
+              : 'Ditahan sementara'
           }
-          tone={loan.returnInfo?.depositRefunded ? 'ok' : undefined}
+          tone={loan.returnInfo?.depositReturned ? 'ok' : undefined}
         />
       </div>
 
@@ -205,6 +210,14 @@ function LoanCard({
           <strong className="text-ink-800">Pengembalian:</strong> diverifikasi{' '}
           {loan.returnInfo.sensor} · kondisi{' '}
           <strong>{loan.returnInfo.condition || 'menunggu'}</strong>
+          {loan.lateFee > 0 && (
+            <>
+              {' · '}
+              <span className="font-semibold text-bad-600">
+                denda {formatRupiah(loan.lateFee)}
+              </span>
+            </>
+          )}
           {loan.returnInfo.notes && <> · “{loan.returnInfo.notes}”</>}
         </div>
       )}

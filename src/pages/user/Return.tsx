@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { LockerGrid } from '@/components/locker/LockerGrid'
+import { ToolArt } from '@/components/ToolArt'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Field, Input, Textarea } from '@/components/ui/Field'
+import { Receipt } from '@/components/ui/Receipt'
 import { Stepper } from '@/components/ui/Stepper'
 import { cn } from '@/lib/cn'
 import { formatDate, formatRupiah } from '@/lib/format'
@@ -28,7 +30,7 @@ export function Return() {
   const submitReturn = useStore((s) => s.submitReturn)
 
   const active = useMemo(
-    () => loans.filter((l) => l.status === 'Aktif'),
+    () => loans.filter((l) => l.status === 'Aktif' || l.status === 'Terlambat'),
     [loans],
   )
   const targetId = loanId ?? ''
@@ -103,8 +105,8 @@ export function Return() {
               return (
                 <Link key={l.id} to={`/kembalikan/${l.id}`}>
                   <Card className="flex items-center gap-3.5 transition hover:-translate-y-0.5 hover:shadow-lift">
-                    <span className="grid h-12 w-12 place-items-center rounded-xl bg-canvas text-2xl">
-                      {t?.icon ?? '🧰'}
+                    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-canvas p-1.5">
+                      <ToolArt id={l.toolId} name={t?.name} />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[15px] font-bold text-ink-950">
@@ -219,12 +221,14 @@ export function Return() {
               <p className="mt-1 text-[13px] text-ink-500">
                 Sistem memeriksa keberadaan & keaslian alat di kompartemen.
               </p>
-              <div className="relative mt-5 overflow-hidden rounded-2xl bg-ink-950 p-6">
+              <div className="relative mt-5 overflow-hidden rounded-2xl border border-line bg-panel p-6">
                 <div className="flex items-center justify-center">
-                  <div className="relative grid h-28 w-28 place-items-center rounded-2xl border-2 border-accent-400/50 bg-white/5">
-                    <span className="text-5xl">{tool?.icon}</span>
+                  <div className="relative grid h-28 w-28 place-items-center rounded-2xl border-2 border-accent-400/60 bg-ink-900/5">
+                    <span className="h-14 w-14">
+                      <ToolArt id={tool?.id ?? ''} name={tool?.name} />
+                    </span>
                     {scanning && (
-                      <span className="pointer-events-none absolute inset-x-0 h-1 bg-accent-400 shadow-[0_0_16px_2px_rgba(255,198,61,0.7)] anim-scan" />
+                      <span className="pointer-events-none absolute inset-x-0 h-1 bg-accent-500 shadow-[0_0_16px_2px_rgba(245,166,35,0.55)] anim-scan" />
                     )}
                   </div>
                 </div>
@@ -234,19 +238,19 @@ export function Return() {
                       key={line}
                       className={cn(
                         'flex items-center gap-2.5 text-[13px] transition-all duration-300',
-                        i < scanIndex && 'text-ok-500',
-                        i === scanIndex && 'text-white',
-                        i > scanIndex && 'text-white/30',
+                        i < scanIndex && 'text-ok-600',
+                        i === scanIndex && 'text-ink-950',
+                        i > scanIndex && 'text-ink-400',
                       )}
                     >
                       <span
                         className={cn(
                           'grid h-5 w-5 place-items-center rounded-full text-[10px]',
                           i < scanIndex
-                            ? 'bg-ok-500/20 text-ok-500'
+                            ? 'bg-ok-500/20 text-ok-600'
                             : i === scanIndex
-                              ? 'bg-accent-400 text-ink-950'
-                              : 'bg-white/10 text-white/40',
+                              ? 'bg-accent-500 text-ink-950'
+                              : 'bg-ink-900/10 text-ink-400',
                         )}
                       >
                         {i < scanIndex ? '✓' : i === scanIndex ? '●' : i + 1}
@@ -287,7 +291,7 @@ export function Return() {
                     className={cn(
                       'rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition',
                       sensor === s
-                        ? 'border-ink-900 bg-ink-900 text-white'
+                        ? 'border-fg bg-fg text-on-fg'
                         : 'border-line-strong bg-surface text-ink-600',
                     )}
                   >
@@ -353,7 +357,7 @@ export function Return() {
               <div
                 className={cn(
                   'px-6 py-5 text-white',
-                  cleanReturn ? 'bg-ok-600' : 'bg-accent-600',
+                  cleanReturn ? 'bg-ok-solid' : 'bg-accent-solid',
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -385,17 +389,25 @@ export function Return() {
                   <span className="text-ink-500">Kondisi dilaporkan</span>
                   <span className="font-semibold text-ink-900">{condition}</span>
                 </div>
+                {loan.lateFee > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-ink-500">Denda keterlambatan</span>
+                    <span className="font-semibold text-bad-600">
+                      - {formatRupiah(loan.lateFee)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between border-t border-line pt-2">
-                  <span className="text-ink-500">
-                    Deposit {formatRupiah(loan.deposit)}
-                  </span>
+                  <span className="text-ink-500">Deposit {formatRupiah(loan.deposit)}</span>
                   <span
                     className={cn(
                       'font-bold',
                       cleanReturn ? 'text-ok-600' : 'text-accent-600',
                     )}
                   >
-                    {cleanReturn ? 'Dikembalikan ✓' : 'Ditahan sementara'}
+                    {cleanReturn
+                      ? `Dikembalikan ${formatRupiah(loan.returnInfo?.depositReturned ?? 0)} ✓`
+                      : 'Ditahan sementara'}
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -407,6 +419,19 @@ export function Return() {
                   </Link>
                 </div>
               </div>
+
+              <div className="no-print border-t border-dashed border-line-strong bg-canvas px-6 py-7">
+                <p className="mb-4 text-center text-[11px] font-bold uppercase tracking-wider text-ink-400">
+                  Struk pengembalian
+                </p>
+                <Receipt
+                  mode="return"
+                  loan={loan}
+                  tool={tool}
+                  station={station}
+                  compartment={comp}
+                />
+              </div>
             </Card>
           )}
         </div>
@@ -417,7 +442,7 @@ export function Return() {
             <h3 className="text-[13px] font-bold uppercase tracking-wider text-ink-400">
               Kompartemen {comp?.label}
             </h3>
-            <div className="mt-3 rounded-2xl bg-ink-950 p-3.5">
+            <div className="mt-3 rounded-2xl border border-line bg-panel p-3.5">
               <LockerGrid
                 compartments={compartments.filter(
                   (c) => c.stationId === loan.stationId,

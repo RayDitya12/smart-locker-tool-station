@@ -14,6 +14,7 @@ const filters: Array<LoanStatus | 'Semua'> = [
   'Semua',
   'Menunggu pembayaran',
   'Aktif',
+  'Terlambat',
   'Menunggu verifikasi',
   'Selesai',
   'Dibatalkan',
@@ -67,7 +68,9 @@ export function AdminTransactions() {
               {rows.map((l) => {
                 const t = tools.find((x) => x.id === l.toolId)
                 const st = stations.find((x) => x.id === l.stationId)
-                const late = isOverdue(l.dueDate) && l.status === 'Aktif'
+                const late =
+                  l.status === 'Terlambat' ||
+                  (isOverdue(l.dueDate) && l.status === 'Aktif')
                 return (
                   <tr key={l.id} className="border-b border-line/70 last:border-0">
                     <td className="px-5 py-3">
@@ -92,6 +95,11 @@ export function AdminTransactions() {
                       <p className="text-[11px] text-ink-400">
                         dep {formatRupiah(l.deposit)}
                       </p>
+                      {l.lateFee > 0 && (
+                        <p className="text-[11px] font-semibold text-bad-600">
+                          denda {formatRupiah(l.lateFee)}
+                        </p>
+                      )}
                     </td>
                     <td className="px-3 py-3 text-[12px]">
                       {l.payment ? (
@@ -113,7 +121,9 @@ export function AdminTransactions() {
                       </Badge>
                     </td>
                     <td className="px-5 py-3 text-right">
-                      {l.status === 'Menunggu pembayaran' || l.status === 'Aktif' ? (
+                      {l.status === 'Menunggu pembayaran' ||
+                      l.status === 'Aktif' ||
+                      l.status === 'Terlambat' ? (
                         <Button variant="danger" size="sm" onClick={() => cancelLoan(l.id)}>
                           Batalkan
                         </Button>
