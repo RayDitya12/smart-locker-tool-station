@@ -249,7 +249,7 @@ export function Return() {
                           i < scanIndex
                             ? 'bg-ok-500/20 text-ok-600'
                             : i === scanIndex
-                              ? 'bg-accent-500 text-ink-950'
+                              ? 'bg-accent-500 text-night'
                               : 'bg-ink-900/10 text-ink-400',
                         )}
                       >

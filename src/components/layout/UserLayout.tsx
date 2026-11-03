@@ -46,7 +46,7 @@ export function UserLayout() {
                   <>
                     {item.label}
                     {item.to === '/pinjaman' && activeLoans > 0 && (
-                      <span className="ml-1.5 inline-grid h-4 min-w-4 place-items-center rounded-full bg-accent-400 px-1 text-[10px] font-bold text-ink-950">
+                      <span className="ml-1.5 inline-grid h-4 min-w-4 place-items-center rounded-full bg-accent-400 px-1 text-[10px] font-bold text-night">
                         {activeLoans}
                       </span>
                     )}

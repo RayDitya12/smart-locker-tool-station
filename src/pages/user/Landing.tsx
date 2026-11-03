@@ -97,10 +97,7 @@ export function Landing() {
                 </Button>
               </Link>
               <Link to="/pinjam">
-                <Button
-                  size="lg"
-                  className="border border-line-strong bg-surface-2 text-ink-900 hover:bg-canvas"
-                >
+                <Button variant="secondary" size="lg">
                   Mulai pinjam
                 </Button>
               </Link>

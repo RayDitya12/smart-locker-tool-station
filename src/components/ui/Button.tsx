@@ -1,18 +1,20 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
-type Variant = 'primary' | 'accent' | 'outline' | 'ghost' | 'danger' | 'signal'
+type Variant = 'primary' | 'accent' | 'outline' | 'secondary' | 'ghost' | 'danger' | 'signal'
 type Size = 'sm' | 'md' | 'lg'
 
 const variants: Record<Variant, string> = {
   primary:
     'bg-fg text-on-fg hover:opacity-90 active:opacity-100 shadow-soft disabled:opacity-40',
   accent:
-    'bg-accent-400 text-ink-950 hover:bg-accent-300 active:bg-accent-500 shadow-soft disabled:bg-accent-100 disabled:text-ink-400',
+    'bg-accent-400 text-night hover:bg-accent-300 active:bg-accent-500 shadow-soft disabled:bg-accent-100 disabled:text-ink-400',
   signal:
     'bg-signal-500 text-white hover:bg-signal-600 active:bg-signal-600 shadow-soft disabled:bg-signal-100',
   outline:
     'bg-surface text-ink-800 border border-line-strong hover:bg-canvas active:bg-line/60 disabled:text-ink-300',
+  secondary:
+    'bg-surface-2 text-ink-900 border border-line-strong hover:bg-canvas active:bg-line/60 disabled:text-ink-300',
   ghost: 'bg-transparent text-ink-700 hover:bg-canvas active:bg-line/60',
   danger: 'bg-bad-50 text-bad-600 hover:bg-bad-500/15 active:bg-bad-500/20',
 }

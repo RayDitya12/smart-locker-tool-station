@@ -69,7 +69,7 @@ export function LockerGrid({
             {isOpen && (
               <>
                 <span className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-accent-300/70 to-transparent anim-scan" />
-                <span className="absolute inset-x-0 bottom-0 bg-accent-500 py-1 text-center text-[10px] font-bold text-ink-950">
+                <span className="absolute inset-x-0 bottom-0 bg-accent-500 py-1 text-center text-[10px] font-bold text-night">
                   TERBUKA
                 </span>
               </>
