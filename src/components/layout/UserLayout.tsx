@@ -1,14 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Brand } from './Brand'
+import { NotificationBell } from '@/components/ui/NotificationBell'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { cn } from '@/lib/cn'
+import { unreadCount } from '@/lib/notifications'
 import { useStore } from '@/lib/store'
 
 const navItems = [
   { to: '/', label: 'Beranda', end: true },
   { to: '/katalog', label: 'Katalog' },
   { to: '/pinjaman', label: 'Pinjaman Saya' },
+  { to: '/dompet', label: 'Dompet' },
+  { to: '/notifikasi', label: 'Notifikasi' },
 ]
 
 export function UserLayout() {
@@ -18,6 +22,12 @@ export function UserLayout() {
   const activeLoans = useStore(
     (s) => s.loans.filter((l) => l.status === 'Aktif' || l.status === 'Menunggu verifikasi').length,
   )
+  const unread = useStore((s) => unreadCount(s.notifications))
+  const syncDueReminders = useStore((s) => s.syncDueReminders)
+
+  useEffect(() => {
+    syncDueReminders()
+  }, [syncDueReminders])
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -50,6 +60,11 @@ export function UserLayout() {
                         {activeLoans}
                       </span>
                     )}
+                    {item.to === '/notifikasi' && unread > 0 && (
+                      <span className="ml-1.5 inline-grid h-4 min-w-4 place-items-center rounded-full bg-bad-500 px-1 text-[10px] font-bold text-white">
+                        {unread}
+                      </span>
+                    )}
                     {isActive && (
                       <span className="absolute inset-x-3.5 -bottom-[1px] h-0.5 rounded-full bg-accent-400" />
                     )}
@@ -60,7 +75,14 @@ export function UserLayout() {
           </nav>
 
           <div className="hidden items-center gap-2 md:flex">
+            <NotificationBell />
             <ThemeToggle />
+            <Link
+              to="/bantuan"
+              className="rounded-lg px-3 py-2 text-[13px] font-semibold text-ink-500 transition hover:bg-canvas hover:text-ink-800"
+            >
+              Bantuan
+            </Link>
             <Link
               to="/admin"
               className="rounded-lg px-3 py-2 text-[13px] font-semibold text-ink-500 transition hover:bg-canvas hover:text-ink-800"
@@ -90,10 +112,13 @@ export function UserLayout() {
           <div className="border-t border-line bg-surface px-4 py-3 md:hidden">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[12px] font-semibold text-ink-500">Tampilan</span>
-              <ThemeToggle />
+              <div className="flex items-center gap-1">
+                <NotificationBell />
+                <ThemeToggle />
+              </div>
             </div>
             <nav className="flex flex-col gap-1">
-              {[...navItems, { to: '/admin', label: 'Admin' }].map((item) => (
+              {[...navItems, { to: '/bantuan', label: 'Bantuan' }, { to: '/admin', label: 'Admin' }].map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}

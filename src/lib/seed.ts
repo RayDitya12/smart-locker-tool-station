@@ -1,4 +1,5 @@
 import type {
+  AppNotification,
   Compartment,
   Loan,
   LoanStatus,
@@ -210,6 +211,14 @@ export function buildSeedTools(): Tool[] {
       compartmentId: comp ? comp.id : null,
       pricePerDay: t.pricePerDay,
       deposit: t.deposit,
+      history: [
+        {
+          at: stampISO(-31, 9),
+          condition: 'Baik',
+          note: 'Masuk inventaris, lolos inspection awal.',
+          source: 'sistem',
+        },
+      ],
     } satisfies Tool
   })
 }
@@ -247,12 +256,40 @@ const personas: Record<string, string> = {
   B01: 'setrika',
 }
 
+function reservationLoan(compartments: Compartment[]): Loan {
+  const tool = toolSeeds.find((t) => t.id === 'A03')!
+  const comp = compartments.find((c) => c.toolId === 'A03')!
+  const start = dayISO(4)
+  const duration = 3
+  return {
+    id: 'TRX-199004',
+    userName: 'Gilang Ramadhan',
+    studentId: '2113077',
+    contact: 'gilang.r@mail.ac.id',
+    identityVerified: true,
+    toolId: tool.id,
+    stationId: tool.stationId,
+    compartmentId: comp.id,
+    accessCode: '',
+    startDate: start,
+    dueDate: dayISO(4 + duration),
+    durationDays: duration,
+    rentalFee: tool.pricePerDay * duration,
+    deposit: tool.deposit,
+    lateFee: 0,
+    status: 'Menunggu pembayaran',
+    payment: null,
+    returnInfo: null,
+    createdAt: stampISO(0, 10),
+  }
+}
+
 export function buildSeedLoans(): Loan[] {
   const tools = buildSeedTools()
   const compartments = buildCompartments()
   const toolById = new Map(tools.map((t) => [t.id, t]))
 
-  return historySeeds.map((h, i) => {
+  const loans: Loan[] = historySeeds.map((h, i) => {
     const tool = toolById.get(h.toolId)!
     const comp = compartments.find((c) => c.toolId === h.toolId)!
     const startDate = dayISO(-h.dayAgo)
@@ -311,6 +348,9 @@ export function buildSeedLoans(): Loan[] {
       createdAt: stampISO(-h.dayAgo, h.hour),
     } satisfies Loan
   })
+
+  loans.push(reservationLoan(compartments))
+  return loans
 }
 
 export interface SeedState {
@@ -318,6 +358,62 @@ export interface SeedState {
   compartments: Compartment[]
   tools: Tool[]
   loans: Loan[]
+  notifications: AppNotification[]
+}
+
+export function buildSeedNotifications(loans: Loan[], tools: Tool[]): AppNotification[] {
+  const nameOf = (id: string) => tools.find((t) => t.id === id)?.name ?? id
+  const list: AppNotification[] = []
+
+  for (const l of loans) {
+    if (l.status === 'Aktif') {
+      list.push({
+        id: `NTF-${l.id}-ready`,
+        kind: 'siap-diambil',
+        title: 'Loker siap dibuka',
+        body: `${nameOf(l.toolId)} · kode akses ${l.accessCode}. Ambil sebelum ${l.dueDate}.`,
+        createdAt: l.payment?.paidAt ?? l.createdAt,
+        loanId: l.id,
+        read: true,
+      })
+    } else if (l.status === 'Terlambat') {
+      list.push({
+        id: `NTF-${l.id}-late`,
+        kind: 'terlambat',
+        title: 'Melewati jatuh tempo',
+        body: `${nameOf(l.toolId)} belum kembali. Denda berjalan dipotong dari deposit.`,
+        createdAt: l.dueDate,
+        loanId: l.id,
+        read: false,
+      })
+    } else if (l.status === 'Menunggu verifikasi') {
+      list.push({
+        id: `NTF-${l.id}-verif`,
+        kind: 'deposit-ditahan',
+        title: 'Menunggu verifikasi pengelola',
+        body: `${nameOf(l.toolId)} perlu diperiksa. Deposit ditahan sementara.`,
+        createdAt: l.returnInfo?.returnedAt ?? l.createdAt,
+        loanId: l.id,
+        read: false,
+      })
+    } else if (l.status === 'Selesai') {
+      const returned = l.returnInfo?.depositReturned ?? 0
+      list.push({
+        id: `NTF-${l.id}-done`,
+        kind: returned > 0 ? 'deposit-kembali' : 'deposit-ditahan',
+        title: returned > 0 ? 'Deposit dikembalikan' : 'Deposit dipotong denda',
+        body:
+          returned > 0
+            ? `${nameOf(l.toolId)} kembali tepat waktu. Deposit Rp ${returned.toLocaleString('id-ID')} dikembalikan${l.lateFee > 0 ? ` (denda Rp ${l.lateFee.toLocaleString('id-ID')})` : ''}.`
+            : `${nameOf(l.toolId)} kembali dengan catatan. Sebagian deposit ditahan.`,
+        createdAt: l.returnInfo?.returnedAt ?? l.createdAt,
+        loanId: l.id,
+        read: true,
+      })
+    }
+  }
+
+  return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
 export function buildSeedState(): SeedState {
@@ -326,10 +422,24 @@ export function buildSeedState(): SeedState {
   const tools = buildSeedTools()
   const loans = buildSeedLoans()
 
+  const historyFor = (toolId: string) => tools.find((t) => t.id === toolId)?.history
+
   for (const loan of loans) {
     const tool = tools.find((t) => t.id === loan.toolId)
     const comp = compartments.find((c) => c.id === loan.compartmentId)
     if (!tool || !comp) continue
+
+    if (loan.returnInfo) {
+      const condition = loan.returnInfo.condition || 'Baik'
+      historyFor(tool.id)?.push({
+        at: loan.returnInfo.returnedAt,
+        condition,
+        note: loan.returnInfo.notes || 'Pengembalian terverifikasi sensor.',
+        source: condition === 'Baik' ? 'sistem' : 'peminjam',
+        loanId: loan.id,
+      })
+    }
+
     if (loan.status === 'Aktif' || loan.status === 'Terlambat') {
       tool.status = 'Dipinjam'
       comp.status = 'Kosong'
@@ -341,5 +451,7 @@ export function buildSeedState(): SeedState {
     }
   }
 
-  return { stations, compartments, tools, loans }
+  const notifications = buildSeedNotifications(loans, tools)
+
+  return { stations, compartments, tools, loans, notifications }
 }

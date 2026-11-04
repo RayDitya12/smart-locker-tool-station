@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Modal'
-import { formatRupiah } from '@/lib/format'
+import { downloadCsv, toCsv } from '@/lib/csv'
+import { formatDateTime, formatRupiah } from '@/lib/format'
 import { conditionTone, toolStatusTone } from '@/lib/status'
 import { useStore } from '@/lib/store'
-import type { ToolCondition, ToolStatus } from '@/lib/types'
+import type { Tool, ToolCondition, ToolStatus } from '@/lib/types'
 
 const conditions: ToolCondition[] = ['Baik', 'Perlu diperiksa', 'Rusak', 'Dalam perbaikan']
 const statuses: ToolStatus[] = ['Tersedia', 'Dipinjam', 'Tidak tersedia']
@@ -22,6 +23,7 @@ export function AdminInventory() {
   const pushToast = useStore((s) => s.pushToast)
 
   const [openAdd, setOpenAdd] = useState(false)
+  const [historyTool, setHistoryTool] = useState<Tool | null>(null)
   const [form, setForm] = useState({
     name: '',
     icon: '🧰',
@@ -51,15 +53,38 @@ export function AdminInventory() {
     setForm({ ...form, name: '', description: '' })
   }
 
+  function exportCsv() {
+    const csv = toCsv(
+      ['ID', 'Nama alat', 'Kategori', 'Stasiun', 'Kondisi', 'Status', 'Harga/hari (Rp)', 'Deposit (Rp)', 'Riwayat kondisi'],
+      tools.map((t) => [
+        t.id,
+        t.name,
+        t.category,
+        stations.find((s) => s.id === t.stationId)?.name ?? t.stationId,
+        t.condition,
+        t.status,
+        t.pricePerDay,
+        t.deposit,
+        t.history.map((h) => `${h.at.slice(0, 10)}: ${h.condition || '-'}`).join(' | '),
+      ]),
+    )
+    downloadCsv('inventaris-alat.csv', csv)
+  }
+
   return (
     <div>
       <PageHead
         title="Inventaris alat"
         subtitle={`${tools.length} perkakas terdaftar di semua stasiun.`}
         action={
-          <Button size="sm" onClick={() => setOpenAdd(true)}>
-            ＋ Tambah alat
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={exportCsv}>
+              ⬇ Ekspor CSV
+            </Button>
+            <Button size="sm" onClick={() => setOpenAdd(true)}>
+              ＋ Tambah alat
+            </Button>
+          </div>
         }
       />
 
@@ -141,14 +166,19 @@ export function AdminInventory() {
                       </Badge>
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => removeTool(t.id)}
-                        disabled={t.status === 'Dipinjam'}
-                      >
-                        Hapus
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setHistoryTool(t)}>
+                          Riwayat
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => removeTool(t.id)}
+                          disabled={t.status === 'Dipinjam'}
+                        >
+                          Hapus
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -236,6 +266,44 @@ export function AdminInventory() {
             />
           </Field>
         </div>
+      </Modal>
+
+      <Modal
+        open={!!historyTool}
+        onClose={() => setHistoryTool(null)}
+        title={historyTool ? `Riwayat kondisi · ${historyTool.name}` : 'Riwayat kondisi'}
+        footer={<Button variant="ghost" onClick={() => setHistoryTool(null)}>Tutup</Button>}
+      >
+        {historyTool && (
+          <div>
+            <div className="mb-4 flex flex-wrap items-center gap-2 text-[12px]">
+              <Badge tone={conditionTone(historyTool.condition)}>
+                Kini: {historyTool.condition}
+              </Badge>
+              <Badge tone="neutral">{historyTool.history.length} kejadian tercatat</Badge>
+            </div>
+            <ol className="relative ml-1 border-l-2 border-line pl-5">
+              {[...historyTool.history].reverse().map((h, i) => (
+                <li key={i} className="relative pb-4 last:pb-0">
+                  <span className="absolute -left-[27px] top-1 grid h-4 w-4 place-items-center rounded-full border-2 border-line bg-surface text-[8px]">
+                    ●
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge tone={conditionTone(h.condition)}>{h.condition || 'Diperbarui'}</Badge>
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+                      {h.source}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[13px] text-ink-700">{h.note}</p>
+                  <p className="mt-0.5 text-[11px] text-ink-400">
+                    {formatDateTime(h.at)}
+                    {h.loanId && <span className="font-mono"> · {h.loanId}</span>}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
       </Modal>
     </div>
   )

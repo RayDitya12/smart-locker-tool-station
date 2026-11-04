@@ -10,8 +10,11 @@ import { AdminReturns } from '@/pages/admin/AdminReturns'
 import { AdminTransactions } from '@/pages/admin/AdminTransactions'
 import { NotFound } from '@/pages/NotFound'
 import { Borrow } from '@/pages/user/Borrow'
+import { Bantuan } from '@/pages/user/Bantuan'
 import { Catalog } from '@/pages/user/Catalog'
+import { Dompet } from '@/pages/user/Dompet'
 import { Landing } from '@/pages/user/Landing'
+import { Notifikasi } from '@/pages/user/Notifikasi'
 import { Rentals } from '@/pages/user/Rentals'
 import { Return } from '@/pages/user/Return'
 import { StationDetail } from '@/pages/user/StationDetail'
@@ -27,6 +30,9 @@ export default function App() {
           <Route path="pinjam" element={<Borrow />} />
           <Route path="pinjam/:toolId" element={<Borrow />} />
           <Route path="pinjaman" element={<Rentals />} />
+          <Route path="dompet" element={<Dompet />} />
+          <Route path="bantuan" element={<Bantuan />} />
+          <Route path="notifikasi" element={<Notifikasi />} />
           <Route path="kembalikan" element={<Return />} />
           <Route path="kembalikan/:loanId" element={<Return />} />
           <Route path="*" element={<NotFound />} />

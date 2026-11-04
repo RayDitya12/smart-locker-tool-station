@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { AvailabilityCalendar } from '@/components/AvailabilityCalendar'
 import { LockerGrid } from '@/components/locker/LockerGrid'
 import { ToolArt } from '@/components/ToolArt'
 import { Badge } from '@/components/ui/Badge'
@@ -10,7 +11,8 @@ import { Modal } from '@/components/ui/Modal'
 import { Receipt } from '@/components/ui/Receipt'
 import { Stepper } from '@/components/ui/Stepper'
 import { cn } from '@/lib/cn'
-import { addDaysISO, formatDate, formatRupiah, todayISO } from '@/lib/format'
+import { hasConflict } from '@/lib/availability'
+import { addDaysISO, daysBetween, formatDate, formatRupiah, todayISO } from '@/lib/format'
 import { useStore } from '@/lib/store'
 import { durations, wallets } from '@/lib/wallets'
 import type { PaymentMethod } from '@/lib/types'
@@ -22,6 +24,7 @@ export function Borrow() {
   const tools = useStore((s) => s.tools)
   const stations = useStore((s) => s.stations)
   const compartments = useStore((s) => s.compartments)
+  const loans = useStore((s) => s.loans)
   const session = useStore((s) => s.session)
   const requestLoan = useStore((s) => s.requestLoan)
   const payLoan = useStore((s) => s.payLoan)
@@ -35,7 +38,7 @@ export function Borrow() {
   const [verified, setVerified] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [startDate, setStartDate] = useState(todayISO())
-  const [duration, setDuration] = useState(1)
+  const [endDate, setEndDate] = useState(addDaysISO(todayISO(), 1))
   const [method, setMethod] = useState<PaymentMethod>('GoPay')
   const [paying, setPaying] = useState(false)
   const [loanId, setLoanId] = useState<string | null>(null)
@@ -52,12 +55,23 @@ export function Borrow() {
     if (toolId && tools.some((t) => t.id === toolId)) setSelectedId(toolId)
   }, [toolId, tools])
 
+  const duration = Math.max(1, daysBetween(startDate, endDate))
+  const dueDate = addDaysISO(startDate, duration)
   const rentalFee = tool ? tool.pricePerDay * duration : 0
   const deposit = tool?.deposit ?? 0
   const total = rentalFee + deposit
-  const dueDate = addDaysISO(startDate, duration)
+  const dateConflict = tool ? hasConflict(loans, tool.id, startDate, duration) : false
 
   const availableTools = tools.filter((t) => t.status === 'Tersedia')
+
+  function changeStart(v: string) {
+    setStartDate(v)
+    if (daysBetween(v, endDate) < 1) setEndDate(addDaysISO(v, duration))
+  }
+
+  function pickDuration(d: number) {
+    setEndDate(addDaysISO(startDate, d))
+  }
 
   function runVerify() {
     setVerifying(true)
@@ -275,30 +289,36 @@ export function Borrow() {
             <Card className="anim-fade-up">
               <h2 className="text-base font-bold text-ink-950">Durasi & jadwal</h2>
               <p className="mt-1 text-[13px] text-ink-500">
-                Tentukan mulai pinjam dan berapa lama alat digunakan.
+                Pilih tanggal pinjam & tanggal kembali lewat kalender, atau pakai
+                pintasan durasi cepat.
               </p>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Field label="Tanggal mulai" required>
+                <Field label="Tanggal pinjam" required>
                   <Input
                     type="date"
                     value={startDate}
                     min={todayISO()}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => changeStart(e.target.value)}
                   />
                 </Field>
-                <Field label="Rencana kembali">
-                  <Input value={formatDate(dueDate)} readOnly className="bg-canvas" />
+                <Field label="Tanggal kembali" required>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    min={addDaysISO(startDate, 1)}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
                 </Field>
               </div>
               <div className="mt-4">
                 <span className="mb-2 block text-[12px] font-bold text-ink-700">
-                  Lama pinjam
+                  Pintas durasi
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {durations.map((d) => (
                     <button
                       key={d}
-                      onClick={() => setDuration(d)}
+                      onClick={() => pickDuration(d)}
                       className={cn(
                         'rounded-xl border-2 px-4 py-2.5 text-[13px] font-bold transition',
                         duration === d
@@ -310,6 +330,22 @@ export function Borrow() {
                     </button>
                   ))}
                 </div>
+                <p className="mt-2 text-[11px] text-ink-400">
+                  Durasi terpilih:{' '}
+                  <strong className="font-semibold text-ink-600">{duration} hari</strong> ·
+                  atur bebas lewat kolom tanggal atau kalender di bawah.
+                </p>
+              </div>
+              <div className="mt-5">
+                <span className="mb-2 block text-[12px] font-bold text-ink-700">
+                  Kalender ketersediaan · 14 hari ke depan
+                </span>
+                <AvailabilityCalendar
+                  toolId={tool!.id}
+                  startDate={startDate}
+                  durationDays={duration}
+                  onSelect={changeStart}
+                />
               </div>
               <div className="mt-4 rounded-xl bg-signal-50 px-4 py-3 text-[12px] text-signal-600 ring-1 ring-inset ring-signal-500/15">
                 Lewat dari <strong>{formatDate(dueDate)}</strong> akan dikenakan denda
@@ -319,7 +355,9 @@ export function Borrow() {
                 <Button variant="ghost" onClick={() => setStep(1)}>
                   ← Kembali
                 </Button>
-                <Button onClick={() => setStep(3)}>Lanjut ke pembayaran →</Button>
+                <Button onClick={() => setStep(3)} disabled={dateConflict}>
+                  {dateConflict ? 'Tanggal bentrok' : 'Lanjut ke pembayaran →'}
+                </Button>
               </div>
             </Card>
           )}

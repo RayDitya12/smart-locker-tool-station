@@ -43,6 +43,14 @@ export interface Compartment {
   toolId: string | null
 }
 
+export interface ConditionEvent {
+  at: string
+  condition: ToolCondition | ''
+  note: string
+  source: 'sistem' | 'peminjam' | 'admin'
+  loanId?: string
+}
+
 export interface Tool {
   id: string
   name: string
@@ -55,6 +63,24 @@ export interface Tool {
   compartmentId: string | null
   pricePerDay: number
   deposit: number
+  history: ConditionEvent[]
+}
+
+export type NotificationKind =
+  | 'siap-diambil'
+  | 'pengingat-jatuh-tempo'
+  | 'terlambat'
+  | 'deposit-kembali'
+  | 'deposit-ditahan'
+
+export interface AppNotification {
+  id: string
+  kind: NotificationKind
+  title: string
+  body: string
+  createdAt: string
+  loanId?: string
+  read: boolean
 }
 
 export interface ReturnInfo {

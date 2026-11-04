@@ -2,16 +2,22 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import {
   addDaysISO,
+  daysBetween,
   daysLate,
   formatRupiah,
   generateAccessCode,
   generateLoanId,
   lateFeeFor,
+  todayISO,
 } from './format'
 import { buildSeedState } from './seed'
+import { hasConflict } from './availability'
 import type {
+  AppNotification,
   Compartment,
+  ConditionEvent,
   Loan,
+  NotificationKind,
   PaymentMethod,
   SensorKind,
   SessionUser,
@@ -44,6 +50,7 @@ interface StoreState {
   compartments: Compartment[]
   tools: Tool[]
   loans: Loan[]
+  notifications: AppNotification[]
   session: SessionUser | null
   adminAuthed: boolean
   toasts: Toast[]
@@ -51,6 +58,12 @@ interface StoreState {
   setSession: (user: SessionUser | null) => void
   pushToast: (message: string, tone?: ToastTone) => void
   dismissToast: (id: number) => void
+
+  notify: (kind: NotificationKind, title: string, body: string, loanId?: string) => void
+  markNotificationRead: (id: string) => void
+  markAllNotificationsRead: () => void
+  clearNotifications: () => void
+  syncDueReminders: () => void
 
   requestLoan: (draft: LoanDraft) => string | null
   payLoan: (loanId: string, method: PaymentMethod) => boolean
@@ -71,15 +84,25 @@ interface StoreState {
   adminLogin: (pin: string) => boolean
   adminLogout: () => void
   updateTool: (toolId: string, patch: Partial<Tool>) => void
-  addTool: (input: Omit<Tool, 'id' | 'status' | 'compartmentId'>) => void
+  addTool: (input: Omit<Tool, 'id' | 'status' | 'compartmentId' | 'history'>) => void
   removeTool: (toolId: string) => void
   resetDemo: () => void
 }
 
 let toastSeq = 0
+let notifSeq = 0
 
 function freshSeed() {
   return buildSeedState()
+}
+
+function condEvent(
+  condition: ToolCondition | '',
+  note: string,
+  source: ConditionEvent['source'],
+  loanId?: string,
+): ConditionEvent {
+  return { at: new Date().toISOString(), condition, note, source, loanId }
 }
 
 export const useStore = create<StoreState>()(
@@ -100,6 +123,61 @@ export const useStore = create<StoreState>()(
       dismissToast: (id) =>
         set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
+      notify: (kind, title, body, loanId) => {
+        const n: AppNotification = {
+          id: `NTF-${Date.now().toString().slice(-6)}-${++notifSeq}`,
+          kind,
+          title,
+          body,
+          createdAt: new Date().toISOString(),
+          loanId,
+          read: false,
+        }
+        set((s) => ({ notifications: [n, ...s.notifications] }))
+      },
+      markNotificationRead: (id) =>
+        set((s) => ({
+          notifications: s.notifications.map((n) =>
+            n.id === id ? { ...n, read: true } : n,
+          ),
+        })),
+      markAllNotificationsRead: () =>
+        set((s) => ({
+          notifications: s.notifications.map((n) => ({ ...n, read: true })),
+        })),
+      clearNotifications: () => set({ notifications: [] }),
+
+      syncDueReminders: () => {
+        const { loans, tools, notifications } = get()
+        const today = todayISO()
+        const nameOf = (id: string) => tools.find((t) => t.id === id)?.name ?? id
+        const reminders: AppNotification[] = []
+        for (const l of loans) {
+          if (l.status !== 'Aktif' && l.status !== 'Terlambat') continue
+          const already = notifications.some(
+            (n) => n.loanId === l.id && n.kind === 'pengingat-jatuh-tempo',
+          )
+          if (already) continue
+          const dueIn = daysBetween(today, l.dueDate.slice(0, 10))
+          if (dueIn > 2) continue
+          reminders.push({
+            id: `NTF-${l.id}-remind`,
+            kind: 'pengingat-jatuh-tempo',
+            title: dueIn < 0 ? 'Lewat jatuh tempo' : 'Segera jatuh tempo',
+            body:
+              dueIn < 0
+                ? `${nameOf(l.toolId)} sudah melewati jatuh tempo (${l.dueDate}). Kembalikan untuk menghentikan denda.`
+                : `Kembalikan ${nameOf(l.toolId)} paling lambat ${l.dueDate}${dueIn === 0 ? ' (hari ini)' : ''}.`,
+            createdAt: new Date().toISOString(),
+            loanId: l.id,
+            read: false,
+          })
+        }
+        if (reminders.length > 0) {
+          set((s) => ({ notifications: [...reminders, ...s.notifications] }))
+        }
+      },
+
       requestLoan: (draft) => {
         const tool = get().tools.find((t) => t.id === draft.toolId)
         if (!tool || tool.status !== 'Tersedia') {
@@ -108,6 +186,10 @@ export const useStore = create<StoreState>()(
         }
         if (!tool.compartmentId) {
           get().pushToast('Alat belum punya kompartemen.', 'error')
+          return null
+        }
+        if (hasConflict(get().loans, tool.id, draft.startDate, draft.durationDays)) {
+          get().pushToast('Tanggal terpilih sudah dipesan. Cek kalender ketersediaan.', 'error')
           return null
         }
         const rentalFee = tool.pricePerDay * draft.durationDays
@@ -147,13 +229,14 @@ export const useStore = create<StoreState>()(
         const loan = get().loans.find((l) => l.id === loanId)
         if (!loan || loan.status !== 'Menunggu pembayaran') return false
         const total = loan.rentalFee + loan.deposit
+        const accessCode = generateAccessCode()
         set((s) => ({
           loans: s.loans.map((l) =>
             l.id === loanId
               ? {
                   ...l,
                   status: 'Aktif',
-                  accessCode: generateAccessCode(),
+                  accessCode,
                   payment: {
                     method,
                     rentalFee: l.rentalFee,
@@ -172,6 +255,14 @@ export const useStore = create<StoreState>()(
             c.id === loan.compartmentId ? { ...c, status: 'Kosong' } : c,
           ),
         }))
+        const toolName =
+          get().tools.find((t) => t.id === loan.toolId)?.name ?? loan.toolId
+        get().notify(
+          'siap-diambil',
+          'Loker siap dibuka',
+          `${toolName} · kode akses ${accessCode}. Ambil sebelum ${loan.dueDate}.`,
+          loanId,
+        )
         get().pushToast('Pembayaran berhasil. Kode akses loker diterbitkan.', 'success')
         return true
       },
@@ -229,12 +320,21 @@ export const useStore = create<StoreState>()(
                 }
               : l,
           ),
-          tools: s.tools.map((t) =>
+          tools: s.tools.map((t): Tool =>
             t.id === loan.toolId
               ? {
                   ...t,
                   condition,
                   status: cleanReturn ? 'Tersedia' : 'Tidak tersedia',
+                  history: [
+                    ...t.history,
+                    condEvent(
+                      condition,
+                      notes || (cleanReturn ? 'Pengembalian terverifikasi sensor.' : 'Perlu pemeriksaan admin.'),
+                      cleanReturn ? 'sistem' : 'peminjam',
+                      loanId,
+                    ),
+                  ],
                 }
               : t,
           ),
@@ -248,6 +348,18 @@ export const useStore = create<StoreState>()(
               : c,
           ),
         }))
+        const toolName =
+          get().tools.find((t) => t.id === loan.toolId)?.name ?? loan.toolId
+        get().notify(
+          cleanReturn ? 'deposit-kembali' : 'deposit-ditahan',
+          cleanReturn ? 'Pengembalian diterima' : 'Menunggu verifikasi',
+          cleanReturn
+            ? late > 0
+              ? `${toolName} kembali terlambat. Denda ${formatRupiah(lateFee)} dipotong, deposit ${formatRupiah(depositReturned)} kembali.`
+              : `${toolName} kembali tepat waktu. Deposit ${formatRupiah(depositReturned)} dikembalikan penuh.`
+            : `${toolName} perlu diperiksa manual. Deposit ditahan sementara.`,
+          loanId,
+        )
         get().pushToast(
           cleanReturn
             ? late > 0
@@ -261,6 +373,9 @@ export const useStore = create<StoreState>()(
       resolveReturn: (loanId, condition, refundDeposit, notes) => {
         const loan = get().loans.find((l) => l.id === loanId)
         if (!loan || loan.status !== 'Menunggu verifikasi') return
+        const depositReturned = refundDeposit
+          ? Math.max(0, loan.deposit - loan.lateFee)
+          : 0
         set((s) => ({
           loans: s.loans.map((l) =>
             l.id === loanId
@@ -273,9 +388,7 @@ export const useStore = create<StoreState>()(
                     sensorVerified: true,
                     condition,
                     depositRefunded: refundDeposit,
-                    depositReturned: refundDeposit
-                      ? Math.max(0, l.deposit - l.lateFee)
-                      : 0,
+                    depositReturned,
                     notes: notes || l.returnInfo?.notes || '',
                   },
                   payment:
@@ -291,6 +404,15 @@ export const useStore = create<StoreState>()(
                   ...t,
                   condition,
                   status: condition === 'Baik' ? 'Tersedia' : 'Tidak tersedia',
+                  history: [
+                    ...t.history,
+                    condEvent(
+                      condition,
+                      notes || `Verifikasi admin · deposit ${refundDeposit ? 'dikembalikan' : 'ditahan'}.`,
+                      'admin',
+                      loanId,
+                    ),
+                  ],
                 }
               : t,
           ),
@@ -304,6 +426,16 @@ export const useStore = create<StoreState>()(
               : c,
           ),
         }))
+        const toolName =
+          get().tools.find((t) => t.id === loan.toolId)?.name ?? loan.toolId
+        get().notify(
+          refundDeposit ? 'deposit-kembali' : 'deposit-ditahan',
+          refundDeposit ? 'Verifikasi selesai' : 'Deposit ditahan',
+          refundDeposit
+            ? `${toolName} lulus pemeriksaan. Deposit ${formatRupiah(depositReturned)} dikembalikan.`
+            : `${toolName} dinyatakan ${condition}. Deposit ditahan${notes ? ` · ${notes}` : ''}.`,
+          loanId,
+        )
         get().pushToast(
           refundDeposit
             ? 'Verifikasi selesai. Deposit dikembalikan.'
@@ -325,7 +457,17 @@ export const useStore = create<StoreState>()(
 
       updateTool: (toolId, patch) =>
         set((s) => ({
-          tools: s.tools.map((t) => (t.id === toolId ? { ...t, ...patch } : t)),
+          tools: s.tools.map((t) => {
+            if (t.id !== toolId) return t
+            const next = { ...t, ...patch }
+            if (patch.condition && patch.condition !== t.condition) {
+              next.history = [
+                ...t.history,
+                condEvent(patch.condition, 'Kondisi diperbarui admin.', 'admin'),
+              ]
+            }
+            return next
+          }),
         })),
 
       addTool: (input) => {
@@ -340,6 +482,9 @@ export const useStore = create<StoreState>()(
           id,
           status: 'Tersedia',
           compartmentId: freeComp ? freeComp.id : null,
+          history: [
+            condEvent(input.condition || 'Baik', 'Masuk inventaris, lolos inspection awal.', 'sistem'),
+          ],
         }
         set((s) => ({
           tools: [...s.tools, tool],
@@ -376,13 +521,14 @@ export const useStore = create<StoreState>()(
       },
     }),
     {
-      name: 'slt-store-v2',
+      name: 'slt-store-v3',
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
         stations: s.stations,
         compartments: s.compartments,
         tools: s.tools,
         loans: s.loans,
+        notifications: s.notifications,
         session: s.session,
         adminAuthed: s.adminAuthed,
       }),

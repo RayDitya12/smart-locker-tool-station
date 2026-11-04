@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Select } from '@/components/ui/Field'
 import { cn } from '@/lib/cn'
+import { downloadCsv, toCsv } from '@/lib/csv'
 import { formatDate, formatDateTime, formatRupiah, isOverdue } from '@/lib/format'
 import { loanStatusTone } from '@/lib/status'
 import { useStore } from '@/lib/store'
@@ -29,22 +30,50 @@ export function AdminTransactions() {
 
   const rows = filter === 'Semua' ? loans : loans.filter((l) => l.status === filter)
 
+  function exportCsv() {
+    const csv = toCsv(
+      ['ID', 'Peminjam', 'NIM', 'Alat', 'Stasiun', 'Mulai', 'Jatuh tempo', 'Durasi (hari)', 'Sewa (Rp)', 'Deposit (Rp)', 'Denda (Rp)', 'Metode', 'Status', 'Deposit kembali (Rp)'],
+      rows.map((l) => [
+        l.id,
+        l.userName,
+        l.studentId,
+        tools.find((x) => x.id === l.toolId)?.name ?? l.toolId,
+        stations.find((x) => x.id === l.stationId)?.name ?? l.stationId,
+        l.startDate,
+        l.dueDate,
+        l.durationDays,
+        l.rentalFee,
+        l.deposit,
+        l.lateFee,
+        l.payment?.method ?? '',
+        l.status,
+        l.returnInfo?.depositReturned ?? 0,
+      ]),
+    )
+    downloadCsv(`transaksi-${filter === 'Semua' ? 'semua' : filter.toLowerCase().replace(/ /g, '-')}.csv`, csv)
+  }
+
   return (
     <div>
       <PageHead
         title="Transaksi"
         subtitle={`${loans.length} total transaksi peminjaman.`}
         action={
-          <div className="w-52">
-            <Select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as LoanStatus | 'Semua')}
-              aria-label="Filter status"
-            >
-              {filters.map((f) => (
-                <option key={f}>{f}</option>
-              ))}
-            </Select>
+          <div className="flex items-center gap-2">
+            <div className="w-52">
+              <Select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as LoanStatus | 'Semua')}
+                aria-label="Filter status"
+              >
+                {filters.map((f) => (
+                  <option key={f}>{f}</option>
+                ))}
+              </Select>
+            </div>
+            <Button variant="secondary" size="sm" onClick={exportCsv}>
+              ⬇ Ekspor CSV
+            </Button>
           </div>
         }
       />

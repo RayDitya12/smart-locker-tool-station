@@ -21,6 +21,14 @@ const scanLines = [
   'Alat terdeteksi & sesuai ✓',
 ]
 
+const damageReasons = [
+  'Goresan/penyimpanan aus',
+  'Bagian listrik bermasalah',
+  'Komponen patah/rusak',
+  'Kotor / tidak bersih',
+  'Kelengkapan kurang',
+]
+
 export function Return() {
   const { loanId } = useParams()
   const loans = useStore((s) => s.loans)
@@ -44,6 +52,7 @@ export function Return() {
   const [sensor, setSensor] = useState<SensorKind>('RFID')
   const [condition, setCondition] = useState<ToolCondition | ''>('')
   const [notes, setNotes] = useState('')
+  const [notesError, setNotesError] = useState(false)
   const [done, setDone] = useState(false)
 
   const tool = tools.find((t) => t.id === loan?.toolId)
@@ -59,6 +68,7 @@ export function Return() {
     setSensor('RFID')
     setCondition('')
     setNotes('')
+    setNotesError(false)
     setDone(false)
   }, [targetId])
 
@@ -138,8 +148,24 @@ export function Return() {
     }
   }
 
+  function toggleReason(reason: string) {
+    setNotesError(false)
+    setNotes((prev) => {
+      const parts = prev ? prev.split(', ') : []
+      const idx = parts.indexOf(reason)
+      const next = idx >= 0
+        ? parts.filter((_, i) => i !== idx)
+        : [...parts, reason]
+      return next.join(', ')
+    })
+  }
+
   function finalize() {
     if (!condition) return
+    if (condition !== 'Baik' && !notes.trim()) {
+      setNotesError(true)
+      return
+    }
     submitReturn(loan!.id, sensor, condition, notes.trim())
     setDone(true)
     setStep(3)
@@ -331,13 +357,57 @@ export function Return() {
                 </div>
               </div>
 
-              <Field label="Catatan (opsional)" className="mt-4">
+              {condition !== 'Baik' && condition !== '' && (
+                <div className="mt-4">
+                  <span className="mb-2 block text-[12px] font-bold text-ink-700">
+                    Alasannya? (pilih satu atau beberapa)
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {damageReasons.map((r) => {
+                      const on = notes.split(', ').includes(r)
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => toggleReason(r)}
+                          className={cn(
+                            'rounded-full border px-3 py-1.5 text-[12px] font-semibold transition',
+                            on
+                              ? 'border-bad-500 bg-bad-50 text-bad-600'
+                              : 'border-line-strong bg-surface text-ink-600 hover:border-line-strong',
+                          )}
+                        >
+                          {on ? '✓ ' : ''}
+                          {r}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <Field
+                label={condition !== 'Baik' && condition !== '' ? 'Deskripsi kerusakan/kondisi (wajib)' : 'Catatan (opsional)'}
+                required={condition !== 'Baik' && condition !== ''}
+                className="mt-4"
+              >
                 <Textarea
                   rows={3}
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={(e) => {
+                    setNotes(e.target.value)
+                    if (notesError) setNotesError(false)
+                  }}
                   placeholder="Misal: ada goresan ringan di badan bor"
+                  className={cn(
+                    notesError && 'border-bad-500 focus:border-bad-500 focus:ring-bad-500/12',
+                  )}
                 />
+                {notesError && (
+                  <p className="mt-1.5 text-[12px] font-semibold text-bad-600">
+                    Jelaskan kondisi alat sebelum melanjutkan.
+                  </p>
+                )}
               </Field>
 
               <div className="mt-5 flex justify-between">

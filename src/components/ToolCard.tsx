@@ -1,16 +1,17 @@
 import { Link } from 'react-router-dom'
 import { ToolArt } from '@/components/ToolArt'
 import { Badge } from '@/components/ui/Badge'
-import { formatRupiah } from '@/lib/format'
+import { formatDate, formatRupiah } from '@/lib/format'
 import { toolStatusTone } from '@/lib/status'
 import type { Station, Tool } from '@/lib/types'
 
 interface ToolCardProps {
   tool: Tool
   station?: Station
+  reservation?: { start: string; end: string } | null
 }
 
-export function ToolCard({ tool, station }: ToolCardProps) {
+export function ToolCard({ tool, station, reservation }: ToolCardProps) {
   const available = tool.status === 'Tersedia'
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-lift">
@@ -45,6 +46,17 @@ export function ToolCard({ tool, station }: ToolCardProps) {
             <span className="truncate">{station.name}</span>
           </p>
         )}
+
+        {available && reservation && (
+          <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-accent-50 px-2.5 py-1.5 text-[11px] font-semibold text-accent-600 ring-1 ring-inset ring-accent-500/15">
+            <span>📅</span>
+            <span>
+              Dipesan {formatDate(reservation.start)}–{formatDate(reservation.end)}, lalu bebas
+            </span>
+          </p>
+        )}
+
+        <div className="flex-1" />
 
         <div className="mt-3 flex items-end justify-between border-t border-line pt-3">
           <div>

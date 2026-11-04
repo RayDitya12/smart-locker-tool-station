@@ -39,6 +39,54 @@ export function AdminOverview() {
     (t) => t.condition === 'Rusak' || t.condition === 'Perlu diperiksa',
   )
 
+  const utilization = tools.length
+    ? Math.round((borrowed / tools.length) * 100)
+    : 0
+  const lateLoans = loans.filter(
+    (l) =>
+      l.status === 'Terlambat' ||
+      l.lateFee > 0 ||
+      (l.status === 'Aktif' && isOverdue(l.dueDate)),
+  )
+  const lateRate = paid.length
+    ? Math.round((lateLoans.length / paid.length) * 100)
+    : 0
+  const avgDuration = paid.length
+    ? paid.reduce((sum, l) => sum + l.durationDays, 0) / paid.length
+    : 0
+  const depositFloat = depositHeld
+
+  const kpis = [
+    {
+      label: 'Tingkat utilisasi alat',
+      value: `${utilization}%`,
+      caption: `${borrowed} dari ${tools.length} alat sedang dipinjam`,
+      pct: utilization,
+      tone: 'accent' as const,
+    },
+    {
+      label: 'Rasio keterlambatan',
+      value: `${lateRate}%`,
+      caption: `${lateLoans.length} dari ${paid.length} transaksi terlambat`,
+      pct: lateRate,
+      tone: (lateRate > 25 ? 'bad' : 'warn') as 'bad' | 'warn',
+    },
+    {
+      label: 'Rata-rata durasi pinjam',
+      value: `${avgDuration.toFixed(1)} hari`,
+      caption: `Berlaku pada ${paid.length} transaksi berbayar`,
+      pct: Math.min(100, Math.round((avgDuration / 7) * 100)),
+      tone: 'info' as const,
+    },
+    {
+      label: 'Deposit mengambang',
+      value: formatRupiah(depositFloat),
+      caption: 'Dana jaminan yang masih tertahan',
+      pct: revenue + depositFloat > 0 ? Math.round((depositFloat / (revenue + depositFloat)) * 100) : 0,
+      tone: 'ok' as const,
+    },
+  ]
+
   const recent = loans.slice(0, 6)
 
   return (
@@ -54,6 +102,20 @@ export function AdminOverview() {
           </Link>
         }
       />
+
+      <section className="mb-5">
+        <div className="mb-3 flex items-center gap-2">
+          <h2 className="text-[13px] font-bold uppercase tracking-wider text-ink-400">
+            Indikator bisnis
+          </h2>
+          <span className="h-px flex-1 bg-line" />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {kpis.map((k) => (
+            <KpiCard key={k.label} {...k} />
+          ))}
+        </div>
+      </section>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard icon="🧰" value={tools.length} label="Total alat" />
@@ -175,6 +237,43 @@ export function AdminOverview() {
         )}
       </Card>
     </div>
+  )
+}
+
+const kpiSkin: Record<'accent' | 'info' | 'ok' | 'bad' | 'warn', { chip: string; bar: string }> = {
+  accent: { chip: 'text-accent-solid dark:text-accent-600', bar: 'from-accent-400 to-accent-500' },
+  info: { chip: 'text-signal-600', bar: 'from-signal-500 to-signal-600' },
+  ok: { chip: 'text-ok-600', bar: 'from-ok-500 to-ok-600' },
+  bad: { chip: 'text-bad-600', bar: 'from-bad-500 to-bad-500' },
+  warn: { chip: 'text-warn-600', bar: 'from-accent-500 to-accent-600' },
+}
+
+function KpiCard({
+  label,
+  value,
+  caption,
+  pct,
+  tone,
+}: {
+  label: string
+  value: string
+  caption: string
+  pct: number
+  tone: 'accent' | 'info' | 'ok' | 'bad' | 'warn'
+}) {
+  const skin = kpiSkin[tone]
+  return (
+    <Card className="flex flex-col gap-2">
+      <p className="text-[12px] font-semibold text-ink-500">{label}</p>
+      <p className={`text-[26px] font-extrabold leading-none ${skin.chip}`}>{value}</p>
+      <div className="h-1.5 overflow-hidden rounded-full bg-canvas">
+        <div
+          className={`h-full rounded-full bg-gradient-to-r transition-all duration-700 ${skin.bar}`}
+          style={{ width: `${Math.max(4, Math.min(100, pct))}%` }}
+        />
+      </div>
+      <p className="text-[11px] leading-snug text-ink-400">{caption}</p>
+    </Card>
   )
 }
 
